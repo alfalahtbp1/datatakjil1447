@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Takjil - Masjid Al Falah</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Poppins', sans-serif; }
+    .gradient-header { background: linear-gradient(to right, #166534, #86efac, #166534); }
+    .table-header { background-color: #166534; color: white; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background-color: white !important; }
+      .table-header { background-color: #166534 !important; color: white !important; -webkit-print-color-adjust: exact; }
+      tr:nth-child(even) { background-color: #f0fdf4 !important; -webkit-print-color-adjust: exact; }
+    }
+    .loading-spinner {
+      width: 40px; height: 40px; border: 4px solid #f3f3f3;
+      border-top: 4px solid #166534; border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-green-50 min-h-screen">
+  
+  <header class="gradient-header py-8 px-4 text-center shadow-md text-white no-print">
+    <div class="flex justify-center mb-3">
+      <img src="https://i.ibb.co.com/JjZqzhR2/logo-al-falah.png" alt="Logo" class="h-24 w-24 object-contain">
+    </div>
+    <h1 class="text-3xl font-bold text-yellow-300">MASJID AL FALAH</h1>
+    <p class="text-xl font-semibold">Daftar Warga Pemberi Takjil Ramadhan</p>
+    <p class="mt-2 text-sm bg-green-800 text-white inline-block px-4 py-1 rounded-full">1447 H | 2026 M</p>
+  </header>
+
+  <div class="hidden print-only text-center my-6">
+    <h1 class="text-2xl font-bold text-green-900">MASJID AL FALAH</h1>
+    <h2 class="text-lg font-bold">Daftar Warga Pemberi Takjil Ramadhan 1447 H | 2026 M</h2>
+    <p class="text-md mt-1 font-semibold" id="printFilterDesc">Wilayah: Semua RT/RW</p>
+    <hr class="border-t-2 border-black mt-3">
+  </div>
+
+  <main class="max-w-7xl mx-auto p-4 md:p-6">
+    <div class="bg-white rounded-xl shadow-xl p-6">
+      
+      <div class="flex flex-col md:flex-row gap-4 mb-6 justify-between items-center no-print">
+        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+          <input type="text" id="searchInput" placeholder="Cari nama..." class="flex-1 md:flex-none px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500 w-full md:w-48 shadow-sm">
+          <select id="filterRtRw" class="flex-1 md:flex-none px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-500 w-full md:w-48 shadow-sm">
+            <option value="all">Semua RT/RW</option>
+            <option value="RT 1 RW 9">RT 1 RW 9</option><option value="RT 2 RW 9">RT 2 RW 9</option>
+            <option value="RT 3 RW 9">RT 3 RW 9</option><option value="RT 4 RW 9">RT 4 RW 9</option>
+            <option value="RT 5 RW 9">RT 5 RW 9</option><option value="RT 1 RW 10">RT 1 RW 10</option>
+            <option value="RT 2 RW 10">RT 2 RW 10</option><option value="RT 3 RW 10">RT 3 RW 10</option>
+            <option value="RT 4 RW 10">RT 4 RW 10</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 w-full md:w-auto flex-wrap">
+          <button id="excelBtn" class="flex-1 md:px-10 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md">📊 Excel</button>
+          <button id="printBtn" class="flex-1 md:px-10 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-md">🖨️ Print</button>
+        </div>
+      </div>
+
+      <div id="loadingState" class="text-center py-10 no-print">
+        <div class="loading-spinner mx-auto mb-2"></div>
+        <p class="text-gray-500">Memuat data jamaah...</p>
+      </div>
+
+      <div id="tableContainer" class="hidden overflow-x-auto">
+        <table class="w-full border-collapse" id="mainTable">
+          <thead>
+            <tr class="table-header">
+              <th class="px-4 py-3 text-left border">Tgl</th>
+              <th class="px-4 py-3 text-left border">Nama</th>
+              <th class="px-4 py-3 text-left border">Blok</th>
+              <th class="px-4 py-3 text-left border">Jenis Takjil</th>
+              <th class="px-4 py-3 text-left border">RT/RW</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+
+        <div class="hidden print-only mt-10">
+          <div class="flex justify-end pr-10">
+            <div class="text-center">
+              <p>Mengetahui,</p>
+              <p class="font-bold">Takmir Masjid Al Falah</p>
+              <div class="h-20"></div>
+              <p class="font-bold underline">____________________</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const SPREADSHEET_ID = "1YjcZeGWDWspuosBjy3VmQDtJHZ64Gbaez3WgHiWuiCQ";
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=0`;
+
+    let allData = [];
+    let filteredData = [];
+
+    const renderTable = () => {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      filteredData.forEach((item, i) => {
+        const tr = document.createElement('tr');
+        tr.className = i % 2 === 0 ? 'bg-white border' : 'bg-green-50 border';
+        tr.innerHTML = `
+          <td class="px-4 py-3 border text-sm">${item.tanggal}</td>
+          <td class="px-4 py-3 font-bold border text-green-900">${item.nama}</td>
+          <td class="px-4 py-3 border text-sm">${item.blok}</td>
+          <td class="px-4 py-3 italic border text-sm">${item.jenis}</td>
+          <td class="px-4 py-3 border text-sm">${item.rtrw}</td>`;
+        tbody.appendChild(tr);
+      });
+    };
+
+    async function loadData() {
+      try {
+        const response = await fetch(`${CSV_URL}&cb=${Date.now()}`);
+        const text = await response.text();
+        const rows = text.split('\n').slice(1);
+        allData = rows.filter(r => r.trim()).map((row, idx) => {
+          const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+          return {
+            tanggal: (cols[0] || '').replace(/"/g, '').trim(),
+            nama: (cols[1] || '').replace(/"/g, '').trim(),
+            blok: (cols[2] || '').replace(/"/g, '').trim(),
+            jenis: (cols[3] || '').replace(/"/g, '').trim(),
+            rtrw: (cols[4] || '').replace(/"/g, '').trim()
+          };
+        }).filter(item => item.nama);
+        filteredData = [...allData];
+        renderTable();
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('tableContainer').classList.remove('hidden');
+      } catch (err) { alert("Koneksi gagal."); }
+    }
+
+    document.getElementById('excelBtn').onclick = () => {
+      const rtVal = document.getElementById('filterRtRw').value;
+      const wilayahText = rtVal === 'all' ? "Semua RT/RW" : rtVal;
+      let excelContent = `<table border="1"><tr><th colspan="5" style="font-size: 16pt; text-align: center;">MASJID AL FALAH</th></tr><tr><th colspan="5" style="font-size: 12pt; text-align: center;">Daftar Warga Pemberi Takjil Ramadhan 1447 H | 2026 M</th></tr><tr><th colspan="5" style="font-size: 10pt; text-align: center;">Wilayah: ${wilayahText}</th></tr><tr><td colspan="5"></td></tr><tr style="background-color: #166534; color: white; font-weight: bold;"><th>Tanggal</th><th>Nama</th><th>Blok</th><th>Jenis Takjil</th><th>RT/RW</th></tr>`;
+      filteredData.forEach(item => { excelContent += `<tr><td>${item.tanggal}</td><td>${item.nama}</td><td>${item.blok}</td><td>${item.jenis}</td><td>${item.rtrw}</td></tr>`; });
+      excelContent += "</table>";
+      const url = 'data:application/vnd.ms-excel,' + encodeURIComponent(excelContent);
+      const link = document.createElement('a'); link.download = `Takjil_AlFalah_${wilayahText.replace(/ /g, '_')}.xls`; link.href = url; link.click();
+    };
+
+    document.getElementById('printBtn').onclick = () => {
+      const rt = document.getElementById('filterRtRw').value;
+      document.getElementById('printFilterDesc').innerText = rt === 'all' ? "Wilayah: Semua RT/RW" : `Wilayah: ${rt}`;
+      window.print();
+    };
+
+    function applyFilters() {
+      const s = document.getElementById('searchInput').value.toLowerCase();
+      const r = document.getElementById('filterRtRw').value;
+      filteredData = allData.filter(d => (d.nama.toLowerCase().includes(s) || d.blok.toLowerCase().includes(s)) && (r === 'all' || d.rtrw === r));
+      renderTable();
+    }
+    document.getElementById('searchInput').oninput = applyFilters;
+    document.getElementById('filterRtRw').onchange = applyFilters;
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>
